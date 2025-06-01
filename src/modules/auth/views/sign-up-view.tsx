@@ -1,8 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
 
 import Link from "next/link";
 
@@ -24,22 +24,37 @@ import { Button } from "@/components/ui/button";
 
 import { OctagonAlertIcon } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { FaGithub, FaGoogle } from "react-icons/fa";
 
-const formSchema = z.object({
-    email: z.string().email(),
-    password: z.string().min(1, { message: "Un mot de passe est requis. " }),
-});
+const formSchema = z
+    .object({
+        name: z.string().min(1, { message: "Un nom est requis. " }),
+        email: z.string().email(),
+        password: z
+            .string()
+            .min(1, { message: "Un mot de passe est requis. " }),
+        confirmPassword: z
+            .string()
+            .min(1, { message: "Un mot de passe est requis. " }),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+        message: "Les mots de passe ne correspondent pas.",
+        path: ["confirmPassword"],
+    });
 
-export const SignInView = () => {
+export const SignUpView = () => {
     const router = useRouter();
+
     const [error, setError] = useState<string | null>(null);
     const [pending, setPending] = useState(false);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
+            name: "",
             email: "",
             password: "",
+            confirmPassword: "",
         },
     });
 
@@ -47,10 +62,33 @@ export const SignInView = () => {
         setError(null);
         setPending(true);
 
-        authClient.signIn.email(
+        authClient.signUp.email(
             {
+                name: data.name,
                 email: data.email,
                 password: data.password,
+                callbackURL: "/",
+            },
+            {
+                onSuccess: () => {
+                    setPending(false);
+                },
+                onError: ({ error }) => {
+                    setPending(false);
+                    setError(error.message);
+                },
+            }
+        );
+    };
+
+    const onSocial = (provider: "github" | "google") => {
+        setError(null);
+        setPending(true);
+
+        authClient.signIn.social(
+            {
+                provider,
+                callbackURL: "/",
             },
             {
                 onSuccess: () => {
@@ -77,11 +115,30 @@ export const SignInView = () => {
                             <div className="flex flex-col gap-6">
                                 <div className="flex flex-col items-center text-center">
                                     <h1 className="text-2xl font-bold">
-                                        Bon retour
+                                        Débutons ensemble !
                                     </h1>
                                     <p className="text-muted-foreground text-balance">
-                                        Connectez-vous à votre compte
+                                        Créez votre compte
                                     </p>
+                                </div>
+                                <div className="grid gap-3">
+                                    <FormField
+                                        control={form.control}
+                                        name="name"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Nom</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="text"
+                                                        placeholder="John Doe"
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
                                 </div>
                                 <div className="grid gap-3">
                                     <FormField
@@ -106,7 +163,30 @@ export const SignInView = () => {
                                         name="password"
                                         render={({ field }) => (
                                             <FormItem>
-                                                <FormLabel>Email</FormLabel>
+                                                <FormLabel>
+                                                    Mot de passe
+                                                </FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="password"
+                                                        placeholder="********"
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <div className="grid gap-3">
+                                    <FormField
+                                        control={form.control}
+                                        name="confirmPassword"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>
+                                                    Confirmer votre mot de passe
+                                                </FormLabel>
                                                 <FormControl>
                                                     <Input
                                                         type="password"
@@ -130,7 +210,7 @@ export const SignInView = () => {
                                     type="submit"
                                     className="w-full"
                                 >
-                                    Se connecter
+                                    Créer son compte
                                 </Button>
                                 <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                                     <span className="bg-card text-muted-foreground relative z-10 px-2">
@@ -139,27 +219,35 @@ export const SignInView = () => {
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <Button
+                                        onClick={() => onSocial("google")}
                                         variant="outline"
                                         type="button"
                                         className="w-full"
                                     >
-                                        Google
+                                        <>
+                                            <FaGoogle />
+                                            Google
+                                        </>
                                     </Button>
                                     <Button
+                                        onClick={() => onSocial("github")}
                                         variant="outline"
                                         type="button"
                                         className="w-full"
                                     >
-                                        Github
+                                        <>
+                                            <FaGithub />
+                                            Github
+                                        </>
                                     </Button>
                                 </div>
                                 <div className="text-center text-sm">
-                                    Vous n&apos;avez pas de compte ?{" "}
+                                    Vous avez déjà un compte ?{" "}
                                     <Link
-                                        href="/sign-up"
+                                        href="/sign-in"
                                         className="underline underline-offset-4"
                                     >
-                                        Créez un compte
+                                        Se connecter
                                     </Link>
                                 </div>
                             </div>
